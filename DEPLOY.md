@@ -35,6 +35,7 @@ Set this as `DATABASE_URL` in Vercel (and locally in `.env`).
    | `NEXT_PUBLIC_SERVER_URL` | `https://your-project.vercel.app` or your custom domain (no trailing slash) |
    | `CRON_SECRET` | Random string if you use cron-authenticated jobs |
    | `PREVIEW_SECRET` | Random string if you use draft preview |
+   | `BLOB_READ_WRITE_TOKEN` | From **Vercel → Storage → Blob** (create a store). Required so images survive serverless (see below). |
 
 4. Deploy. After the first deploy, open `/admin`, create the first admin user, and run **Migrate** from the admin UI or run `npm run payload migrate` locally against the same `DATABASE_URL` if your workflow uses SQL migrations.
 
@@ -50,6 +51,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) and [http://localhost:3000/admin](http://localhost:3000/admin).
 
-## 5. Optional: Supabase Storage for uploads
+## 5. Images on Vercel (Blob storage)
 
-This template stores uploads on disk under `public/media` by default. For production, configure an S3-compatible adapter (Supabase Storage exposes an S3 API) in `src/payload.config.ts` per [Payload storage docs](https://payloadcms.com/docs/upload/storage-adapters).
+The `media` collection used to write only to `public/media` on disk. That path is **not** a durable store on Vercel, so `/api/media/...` often **404s** in production.
+
+This repo enables [**@payloadcms/storage-vercel-blob**](https://payloadcms.com/docs/upload/storage-adapters) when **`BLOB_READ_WRITE_TOKEN`** is set (Vercel usually injects it after you add a Blob store).
+
+1. Vercel project → **Storage** → **Blob** → create a store and link it to the project.
+2. Confirm **`BLOB_READ_WRITE_TOKEN`** appears under **Settings → Environment Variables**.
+3. **Redeploy.** New uploads go to Blob and URLs resolve correctly.
+4. **Existing** media rows that were created against local disk only: run **Seed** again from the admin dashboard (or re-upload assets) so files are written into Blob.
+
+Local dev without the token keeps using **`public/media`** as before.
