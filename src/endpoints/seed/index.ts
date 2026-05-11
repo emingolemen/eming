@@ -98,6 +98,8 @@ export const seed = async ({
     ),
   ])
 
+  // Categories run in their own Promise.all — nesting categories.map inside Promise.all
+  // passes an Array, not a Promise, so category rows were never properly awaited.
   const [demoAuthor, image1Doc, image2Doc, image3Doc, imageHomeDoc] = await Promise.all([
     payload.create({
       collection: 'users',
@@ -127,6 +129,9 @@ export const seed = async ({
       data: imageHero1,
       file: hero1Buffer,
     }),
+  ])
+
+  await Promise.all(
     categories.map((category) =>
       payload.create({
         collection: 'categories',
@@ -136,7 +141,7 @@ export const seed = async ({
         },
       }),
     ),
-  ])
+  )
 
   payload.logger.info(`— Seeding posts...`)
 
