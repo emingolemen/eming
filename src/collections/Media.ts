@@ -8,11 +8,24 @@ import {
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+import { isSupabaseMediaStorageConfigured } from '@/plugins/supabaseStorage'
+
 import { anyone } from '../access/anyone'
 import { authenticated } from '../access/authenticated'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+/** Local disk only when not using S3; Vercel serverless has no writable `public/` — use /tmp as fallback. */
+function mediaLocalUploadConfig(): { disableLocalStorage: true } | { staticDir: string } {
+  if (isSupabaseMediaStorageConfigured()) {
+    return { disableLocalStorage: true }
+  }
+  if (process.env.VERCEL === '1') {
+    return { staticDir: '/tmp/payload-media' }
+  }
+  return { staticDir: path.resolve(dirname, '../../public/media') }
+}
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -40,8 +53,7 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    // Upload to the public/media directory in Next.js making them publicly accessible even outside of Payload
-    staticDir: path.resolve(dirname, '../../public/media'),
+    ...mediaLocalUploadConfig(),
     adminThumbnail: 'thumbnail',
     focalPoint: true,
     imageSizes: [

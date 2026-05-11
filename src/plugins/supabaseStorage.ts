@@ -2,14 +2,10 @@ import { s3Storage } from '@payloadcms/storage-s3'
 import type { Plugin } from 'payload'
 
 /**
- * Supabase Storage exposes an S3-compatible API.
- * @see https://supabase.com/docs/guides/storage/s3/authentication
- *
- * Create a bucket (e.g. `media`), mark it **public** if you want direct public URLs.
- * Generate S3 keys under Storage → Configuration → S3.
+ * Same predicate as {@link supabaseMediaStoragePlugin} — used by `Media` to disable local disk.
  */
-export function supabaseMediaStoragePlugin(): Plugin | undefined {
-  const enabled = Boolean(
+export function isSupabaseMediaStorageConfigured(): boolean {
+  return Boolean(
     process.env.SUPABASE_STORAGE_BUCKET &&
       process.env.SUPABASE_STORAGE_REGION &&
       process.env.SUPABASE_STORAGE_ENDPOINT &&
@@ -17,8 +13,17 @@ export function supabaseMediaStoragePlugin(): Plugin | undefined {
       process.env.SUPABASE_STORAGE_SECRET_ACCESS_KEY &&
       process.env.NEXT_PUBLIC_SUPABASE_URL,
   )
+}
 
-  if (!enabled) return undefined
+/**
+ * Supabase Storage exposes an S3-compatible API.
+ * @see https://supabase.com/docs/guides/storage/s3/authentication
+ *
+ * Create a bucket (e.g. `media`), mark it **public** if you want direct public URLs.
+ * Generate S3 keys under Storage → Configuration → S3.
+ */
+export function supabaseMediaStoragePlugin(): Plugin | undefined {
+  if (!isSupabaseMediaStorageConfigured()) return undefined
 
   const publicObjectUrl = (filename: string, prefix?: string | null): string => {
     const base = process.env.NEXT_PUBLIC_SUPABASE_URL!.replace(/\/$/, '')
