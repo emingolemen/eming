@@ -31,51 +31,43 @@ export const SeedButton: React.FC = () => {
         toast.info('Seeding already in progress.')
         return
       }
-      if (error) {
-        toast.error(`An error occurred, please refresh and try again.`)
-        return
-      }
-
       setLoading(true)
+      setError(null)
 
       try {
-        toast.promise(
-          new Promise((resolve, reject) => {
-            try {
-              fetch('/next/seed', { method: 'POST', credentials: 'include' })
-                .then(async (res) => {
-                  if (res.ok) {
-                    resolve(true)
-                    setSeeded(true)
-                  } else {
-                    let detail = 'An error occurred while seeding.'
-                    try {
-                      const body = await res.json()
-                      if (body && typeof body.error === 'string') {
-                        detail = body.error
-                      }
-                    } catch {
-                      // ignore JSON parse errors
-                    }
-                    reject(detail)
-                  }
-                })
-                .catch((error) => {
-                  reject(error)
-                })
-            } catch (error) {
-              reject(error)
+        await toast.promise(
+          (async () => {
+            const res = await fetch('/next/seed', {
+              method: 'POST',
+              credentials: 'include',
+            })
+            if (!res.ok) {
+              const raw = await res.text()
+              let detail = `Seed failed (${res.status}).`
+              try {
+                const body = JSON.parse(raw) as { error?: string }
+                if (body?.error) detail = body.error
+                else if (raw) detail = raw.slice(0, 500)
+              } catch {
+                if (raw) detail = raw.slice(0, 500)
+              }
+              throw new Error(detail)
             }
-          }),
+            setSeeded(true)
+            return true
+          })(),
           {
             loading: 'Seeding with data....',
             success: <SuccessMessage />,
-            error: 'An error occurred while seeding.',
+            error: (err) =>
+              err instanceof Error ? err.message : 'An error occurred while seeding.',
           },
         )
       } catch (err) {
-        const error = err instanceof Error ? err.message : String(err)
-        setError(error)
+        const msg = err instanceof Error ? err.message : String(err)
+        setError(msg)
+      } finally {
+        setLoading(false)
       }
     },
     [loading, seeded, error],

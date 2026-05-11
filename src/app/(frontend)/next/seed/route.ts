@@ -13,7 +13,7 @@ export async function POST(): Promise<Response> {
   const { user } = await payload.auth({ headers: requestHeaders })
 
   if (!user) {
-    return new Response('Action forbidden.', { status: 403 })
+    return Response.json({ error: 'Not logged in. Refresh and sign in to admin, then try again.' }, { status: 403 })
   }
 
   try {
