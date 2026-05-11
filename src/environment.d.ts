@@ -5,13 +5,15 @@ declare global {
       DATABASE_URL: string
       NEXT_PUBLIC_SERVER_URL: string
       VERCEL_PROJECT_PRODUCTION_URL: string
-      BLOB_READ_WRITE_TOKEN?: string
-      /** Set to `private` if the Vercel Blob store is private (default public). */
-      BLOB_STORE_ACCESS?: string
+      /** Project URL, e.g. https://xxxx.supabase.co — used for public Storage URLs in the browser */
+      NEXT_PUBLIC_SUPABASE_URL?: string
+      SUPABASE_STORAGE_BUCKET?: string
+      SUPABASE_STORAGE_REGION?: string
+      SUPABASE_STORAGE_ENDPOINT?: string
+      SUPABASE_STORAGE_ACCESS_KEY_ID?: string
+      SUPABASE_STORAGE_SECRET_ACCESS_KEY?: string
     }
   }
 }
 
-// If this file has no import/export statements (i.e. is a script)
-// convert it into a module by adding an empty export statement.
 export {}

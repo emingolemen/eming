@@ -3,7 +3,6 @@ import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
-import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { Plugin } from 'payload'
 import { revalidateRedirects } from '@/hooks/revalidateRedirects'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
@@ -13,10 +12,7 @@ import { beforeSyncWithSearch } from '@/search/beforeSync'
 
 import { Page, Post } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
-
-/** Match Vercel Blob store visibility (create store as public OR set BLOB_STORE_ACCESS=private). */
-const blobStoreAccess =
-  process.env.BLOB_STORE_ACCESS === 'private' ? ('private' as const) : ('public' as const)
+import { supabaseMediaStoragePlugin } from './supabaseStorage'
 
 const generateTitle: GenerateTitle<Post | Page> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Payload Website Template` : 'Payload Website Template'
@@ -28,19 +24,10 @@ const generateURL: GenerateURL<Post | Page> = ({ doc }) => {
   return doc?.slug ? `${url}/${doc.slug}` : url
 }
 
+const supabasePlugin = supabaseMediaStoragePlugin()
+
 export const plugins: Plugin[] = [
-  vercelBlobStorage({
-    enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-    collections: {
-      media: true,
-    },
-    token: process.env.BLOB_READ_WRITE_TOKEN,
-    // Private Blob stores reject public uploads; server-side put() must use access: 'private'.
-    // Client uploads omit blob access in the token unless we disable them — then Payload uploads via the adapter.
-    // @ts-expect-error Payload types only list 'public'; @vercel/blob supports 'private' for private stores.
-    access: blobStoreAccess,
-    clientUploads: blobStoreAccess === 'private' ? false : true,
-  }),
+  ...(supabasePlugin ? [supabasePlugin] : []),
   redirectsPlugin({
     collections: ['pages', 'posts'],
     overrides: {

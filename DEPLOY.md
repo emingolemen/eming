@@ -3,7 +3,7 @@
 ## 1. Supabase (Postgres)
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open **Project Settings → Database** and copy the **connection string** (URI).
+2. Open **Project Settings → Database** and copy the **connection string** (URI), or use **Connect** in the dashboard ([docs](https://supabase.com/docs/guides/database/connecting-to-postgres)).
 3. Prefer the **connection pooler** for serverless (Vercel) if Supabase’s docs recommend it for your driver.
 4. If connections from Vercel fail, check Supabase docs for **IPv4** options for external providers.
 
@@ -33,36 +33,38 @@ Set this as `DATABASE_URL` in Vercel (and locally in `.env`).
    | `DATABASE_URL` | Supabase Postgres URI |
    | `PAYLOAD_SECRET` | Strong random string (`openssl rand -base64 32`) |
    | `NEXT_PUBLIC_SERVER_URL` | `https://your-project.vercel.app` or your custom domain (no trailing slash) |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://<project-ref>.supabase.co` (same project as the DB) |
+   | `SUPABASE_STORAGE_BUCKET` | Bucket name you created (e.g. `media`) |
+   | `SUPABASE_STORAGE_REGION` | From Supabase **Storage → Configuration → S3** |
+   | `SUPABASE_STORAGE_ENDPOINT` | From the same page: `https://<project-ref>.storage.supabase.co/storage/v1/s3` ([auth docs](https://supabase.com/docs/guides/storage/s3/authentication)) |
+   | `SUPABASE_STORAGE_ACCESS_KEY_ID` | S3 access key from that page |
+   | `SUPABASE_STORAGE_SECRET_ACCESS_KEY` | S3 secret key from that page |
    | `CRON_SECRET` | Random string if you use cron-authenticated jobs |
    | `PREVIEW_SECRET` | Random string if you use draft preview |
-   | `BLOB_READ_WRITE_TOKEN` | From **Vercel → Storage → Blob** (create a store). Required so images survive serverless (see below). |
-| `BLOB_STORE_ACCESS` | Set to **`private`** if the store is **private** (Payload defaults to public uploads and will error). Omit or `public` for public stores. |
 
-4. Deploy. After the first deploy, open `/admin`, create the first admin user, and run **Migrate** from the admin UI or run `npm run payload migrate` locally against the same `DATABASE_URL` if your workflow uses SQL migrations.
+4. Deploy. After the first deploy, open `/admin`, create the first admin user, and run migrations if your workflow requires them.
 
 ## 4. Local development
 
 ```bash
 docker compose up -d
 cp .env.example .env
-# Edit .env: set PAYLOAD_SECRET, keep DATABASE_URL for local Postgres above
+# Edit .env: set PAYLOAD_SECRET; DATABASE_URL for local Postgres; optional Supabase Storage vars
 npm install
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and [http://localhost:3000/admin](http://localhost:3000/admin).
 
-## 5. Images on Vercel (Blob storage)
+## 5. Images (Supabase Storage)
 
-The `media` collection used to write only to `public/media` on disk. That path is **not** a durable store on Vercel, so `/api/media/...` often **404s** in production.
+Payload uploads must **not** rely on ephemeral server disk on Vercel. This project uses [**@payloadcms/storage-s3**](https://payloadcms.com/docs/upload/storage-adapters) pointed at **Supabase’s S3-compatible Storage API** ([S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication)).
 
-This repo enables [**@payloadcms/storage-vercel-blob**](https://payloadcms.com/docs/upload/storage-adapters) when **`BLOB_READ_WRITE_TOKEN`** is set (Vercel usually injects it after you add a Blob store).
+1. In Supabase: **Storage** → create a bucket (e.g. `media`). For direct public URLs used by the site, set the bucket to **public** (or tune policies to match how you generate URLs).
+2. **Storage → Configuration → S3**: enable S3 protocol if needed, copy **endpoint**, **region**, and generate **access key + secret**.
+3. Set **`NEXT_PUBLIC_SUPABASE_URL`** to `https://<project-ref>.supabase.co` so generated file URLs match the [public object URL](https://supabase.com/docs/guides/storage/serving/downloads) pattern.
+4. Add all Storage-related env vars to Vercel and **redeploy**.
 
-If the Blob store is **private**, set **`BLOB_STORE_ACCESS=private`** in Vercel env. Otherwise uploads use public access and Vercel errors: *Cannot use public access on a private store*.
+Without Storage env vars, local/production falls back to **`public/media`** on disk (fine for local dev only).
 
-1. Vercel project → **Storage** → **Blob** → create a store and link it to the project.
-2. Confirm **`BLOB_READ_WRITE_TOKEN`** appears under **Settings → Environment Variables**.
-3. **Redeploy.** New uploads go to Blob and URLs resolve correctly.
-4. **Existing** media rows that were created against local disk only: run **Seed** again from the admin dashboard (or re-upload assets) so files are written into Blob.
-
-Local dev without the token keeps using **`public/media`** as before.
+Supabase does **not** implement S3 ACL headers on upload ([compatibility](https://supabase.com/docs/guides/storage/s3/compatibility)); visibility is controlled by **bucket / RLS**, not `acl` on the client.

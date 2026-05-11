@@ -7,6 +7,23 @@ const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 import { redirects } from './redirects'
 
+
+const supabaseImageHosts = (() => {
+  const u = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!u) return []
+  try {
+    const url = new URL(u)
+    return [
+      {
+        hostname: url.hostname,
+        protocol: url.protocol.replace(':', '') as 'http' | 'https',
+      },
+    ]
+  } catch {
+    return []
+  }
+})()
+
 const NEXT_PUBLIC_SERVER_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   : process.env.__NEXT_PRIVATE_ORIGIN || 'http://localhost:3000'
@@ -33,6 +50,7 @@ const nextConfig: NextConfig = {
           protocol: url.protocol.replace(':', '') as 'http' | 'https',
         }
       }),
+      ...supabaseImageHosts,
     ],
   },
   webpack: (webpackConfig) => {
