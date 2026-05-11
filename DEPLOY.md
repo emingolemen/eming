@@ -36,6 +36,7 @@ Set this as `DATABASE_URL` in Vercel (and locally in `.env`).
    | `CRON_SECRET` | Random string if you use cron-authenticated jobs |
    | `PREVIEW_SECRET` | Random string if you use draft preview |
    | `BLOB_READ_WRITE_TOKEN` | From **Vercel → Storage → Blob** (create a store). Required so images survive serverless (see below). |
+| `BLOB_STORE_ACCESS` | Set to **`private`** if the store is **private** (Payload defaults to public uploads and will error). Omit or `public` for public stores. |
 
 4. Deploy. After the first deploy, open `/admin`, create the first admin user, and run **Migrate** from the admin UI or run `npm run payload migrate` locally against the same `DATABASE_URL` if your workflow uses SQL migrations.
 
@@ -56,6 +57,8 @@ Open [http://localhost:3000](http://localhost:3000) and [http://localhost:3000/a
 The `media` collection used to write only to `public/media` on disk. That path is **not** a durable store on Vercel, so `/api/media/...` often **404s** in production.
 
 This repo enables [**@payloadcms/storage-vercel-blob**](https://payloadcms.com/docs/upload/storage-adapters) when **`BLOB_READ_WRITE_TOKEN`** is set (Vercel usually injects it after you add a Blob store).
+
+If the Blob store is **private**, set **`BLOB_STORE_ACCESS=private`** in Vercel env. Otherwise uploads use public access and Vercel errors: *Cannot use public access on a private store*.
 
 1. Vercel project → **Storage** → **Blob** → create a store and link it to the project.
 2. Confirm **`BLOB_READ_WRITE_TOKEN`** appears under **Settings → Environment Variables**.
