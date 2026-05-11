@@ -24,6 +24,15 @@ const supabaseImageHosts = (() => {
   }
 })()
 
+/** Public Storage URLs use `https://<ref>.supabase.co/storage/v1/object/public/...` — allow even when `NEXT_PUBLIC_SUPABASE_URL` was missing at build time. */
+const supabasePublicObjectPatterns = [
+  {
+    protocol: 'https' as const,
+    hostname: '*.supabase.co',
+    pathname: '/storage/v1/object/public/**',
+  },
+]
+
 const NEXT_PUBLIC_SERVER_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   : process.env.__NEXT_PRIVATE_ORIGIN || 'http://localhost:3000'
@@ -51,6 +60,7 @@ const nextConfig: NextConfig = {
         }
       }),
       ...supabaseImageHosts,
+      ...supabasePublicObjectPatterns,
     ],
   },
   webpack: (webpackConfig) => {

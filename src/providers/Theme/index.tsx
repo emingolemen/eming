@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useCallback, use, useEffect, useState } from 'react'
+import React, { createContext, use, useCallback, useLayoutEffect, useState } from 'react'
 
 import type { Theme, ThemeContextType } from './types'
 
@@ -24,8 +24,9 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     if (themeToSet === null) {
       window.localStorage.removeItem(themeLocalStorageKey)
       const implicitPreference = getImplicitPreference()
-      document.documentElement.setAttribute('data-theme', implicitPreference || '')
-      if (implicitPreference) setThemeState(implicitPreference)
+      const resolved = implicitPreference ?? defaultTheme
+      document.documentElement.setAttribute('data-theme', resolved)
+      setThemeState(resolved)
     } else {
       setThemeState(themeToSet)
       window.localStorage.setItem(themeLocalStorageKey, themeToSet)
@@ -33,7 +34,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let themeToSet: Theme = defaultTheme
     const preference = window.localStorage.getItem(themeLocalStorageKey)
 
